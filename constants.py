@@ -1,8 +1,8 @@
 NETWORKS = {
-    'edge1': ('172.20.1.255', 24),
+    'edge1': ('192.168.17.255', 24),
     'access1': ('10.20.10.255', 24),
     'access2': ('10.20.20.255', 24),
-    'edge2': ('192.168.17.255', 24)
+    'edge2': ('172.20.1.255', 24)
 }
 
 CONTAINERS = {
@@ -20,3 +20,5 @@ BROADCAST_NETWORKS = {
     'router3': ('access2', 'edge2'),
     'endpoint2': 'edge2'
 }
+
+BUFFER_SIZE = 65536
