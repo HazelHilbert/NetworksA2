@@ -1,30 +1,32 @@
 import struct
 
 HEADER_FORMATS = {
-    1: 'b 3s b',
-    2: 'b 3s b i I',
-    3: 'b 3s',
-    4: 'b 3s',
-    5: 'b 3s b',
-    6: 'b 3s b',
-    7: 'b 3s b i',
-    8: 'b 3s b i I',
+    1: 'b 4s 4s',
+    2: 'b 4s 4s',
+    3: 'b 4s 4s b i',
 }
 
+'''
+Headers
+1: Path Request
+    PacketType, Sender, Destination
+2: Path Response
+    PacketType, Sender, Destination, Next Hop in payload
+3: Forward Media
+    PacketType, Sender, Destination, stream_number, frame
+'''
 
-def make_header(packet_type, producer_ID, stream_number=None, frame=None, crc_value=None):
-    if packet_type in {3, 4}:
-        return struct.pack(HEADER_FORMATS[packet_type], packet_type, producer_ID)
-    elif packet_type in {1, 5, 6}:
-        return struct.pack(HEADER_FORMATS[packet_type], packet_type, producer_ID, stream_number)
-    elif packet_type in {7}:
-        return struct.pack(HEADER_FORMATS[packet_type], packet_type, producer_ID, stream_number, frame)
-    elif packet_type in {2, 8}:
-        return struct.pack(HEADER_FORMATS[packet_type], packet_type, producer_ID, stream_number, frame, crc_value)
+
+def make_header(packet_type, sender_addr, destination_addr, stream_number=None, frame=None):
+    if packet_type in {1, 2}:
+        return struct.pack(HEADER_FORMATS[packet_type], packet_type, sender_addr, destination_addr)
+    elif packet_type in {3}:
+        return struct.pack(HEADER_FORMATS[packet_type], packet_type, sender_addr, destination_addr, stream_number,
+                           frame)
 
 
 def get_header_format(header):
-    if type(header) == int:
+    if isinstance(header, int):
         packet_type = header
     else:
         packet_type = header[0]
@@ -50,6 +52,3 @@ def get_stream_number(header):
 def get_frame_number(header):
     return str(struct.unpack(get_header_format(header), header)[3])
 
-
-def get_crc_value(header):
-    return str(struct.unpack(get_header_format(header), header)[4])

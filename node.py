@@ -59,10 +59,23 @@ class Router(Node):
 
     def listen(self, sock):
         while True:
-            response, address = sock.recvfrom(BUFFER_SIZE)
+            response, sender_address = sock.recvfrom(BUFFER_SIZE)
             if not response:
                 break  # Socket closed or error occurred
             print(response)
+
+            ip_parts = sender_address[0].split('.')
+            ip_parts[-1] = '255'
+            dont_sent_to_address = ('.'.join(ip_parts), 24)
+
+            print(dont_sent_to_address)
+            #self.forward(response, dont_sent_to_address)
+
+    def forward(self, payload, dont_send_to_address):
+        for ip_port in self.broadcast_ip_port:
+            if ip_port != dont_send_to_address:
+                print(str(ip_port) + " vs " + str(dont_send_to_address))
+                self.broadcast_socket.sendto(payload, ip_port)
 
     def add_entry_to_forwarding_table(self, destination, next_hop, timer):
         entry = ForwardingTableEntry(destination, next_hop, timer)
@@ -86,6 +99,7 @@ class Endpoint(Node):
     def listen(self):
         response, address = self.listening_socket.recvfrom(BUFFER_SIZE)
         print(response.decode())
+
 
 class ForwardingTableEntry:
     def __init__(self, destination, next_hop, timer):
