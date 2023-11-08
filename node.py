@@ -19,6 +19,8 @@ class Node:
 
         # create broadcast UDP sockets
         self.broadcast_socket = self.create_broadcasting_socket()
+        self.broadcast_socket.bind(BROADCAST_SOCKET_ADDRESS[self.container_name])
+
 
     def create_broadcasting_socket(self):
         new_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -62,19 +64,29 @@ class Router(Node):
             response, sender_address = sock.recvfrom(BUFFER_SIZE)
             if not response:
                 break  # Socket closed or error occurred
-            print(response)
 
-            ip_parts = sender_address[0].split('.')
-            ip_parts[-1] = '255'
-            dont_sent_to_address = ('.'.join(ip_parts), 24)
+            # discards messages from itself
+            if sender_address not in LISTENING_SOCKET_ADDRESS[self.container_name]:
+                print(response)
+                '''
+                print("From: " + str(sender_address))
+                print("I am: " + str(self.broadcast_socket.getsockname()))
+                print("FIRST: " + str(LISTENING_SOCKET_ADDRESS[self.container_name][0]))
+                print("scond: " + str(LISTENING_SOCKET_ADDRESS[self.container_name][1]))
+                '''
 
-            print(dont_sent_to_address)
-            #self.forward(response, dont_sent_to_address)
+                ip_parts = sender_address[0].split('.')
+                ip_parts[-1] = '255'
+                dont_sent_to_address = ('.'.join(ip_parts), 24)
+
+                #print("dont send to: " + str(dont_sent_to_address))
+                time.sleep(1.0)
+                self.forward(response, dont_sent_to_address)
 
     def forward(self, payload, dont_send_to_address):
         for ip_port in self.broadcast_ip_port:
-            if ip_port != dont_send_to_address:
-                print(str(ip_port) + " vs " + str(dont_send_to_address))
+            if ip_port[0] != dont_send_to_address[0]:
+                #print(str(ip_port) + " vs " + str(dont_send_to_address))
                 self.broadcast_socket.sendto(payload, ip_port)
 
     def add_entry_to_forwarding_table(self, destination, next_hop, timer):
