@@ -48,7 +48,10 @@ while not quit:
                 print("Invalid selection")
 
         elif sock is endpoint.listening_socket:
-            endpoint.listen()
-            #print("I received something lolz")
-
-
+            response, sender_address = endpoint.listen()
+            if response is None and sender_address is None:
+                continue
+            print(response.decode())
+            if response.decode().__contains__(endpoint.format_address):
+                payload = ("Yes, it is me, " + endpoint.format_address).encode()
+                endpoint.broadcast(payload)

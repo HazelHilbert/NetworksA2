@@ -70,19 +70,12 @@ class Router(Node):
             # discards messages from itself
             if sender_address not in LISTENING_SOCKET_ADDRESS[self.container_name]:
                 print(response)
-                '''
-                print("From: " + str(sender_address))
-                print("I am: " + str(self.broadcast_socket.getsockname()))
-                print("FIRST: " + str(LISTENING_SOCKET_ADDRESS[self.container_name][0]))
-                print("scond: " + str(LISTENING_SOCKET_ADDRESS[self.container_name][1]))
-                '''
 
                 ip_parts = sender_address[0].split('.')
                 ip_parts[-1] = '255'
                 dont_sent_to_address = ('.'.join(ip_parts), 24)
 
-                # print("dont send to: " + str(dont_sent_to_address))
-                time.sleep(1.0)
+                time.sleep(0.25)
                 self.forward(response, dont_sent_to_address)
 
     def forward(self, payload, dont_send_to_address):
@@ -114,7 +107,9 @@ class Endpoint(Node):
         while True:
             response, sender_address = self.listening_socket.recvfrom(BUFFER_SIZE)
             if sender_address not in LISTENING_SOCKET_ADDRESS[self.container_name]:
-                print(response)
+                return response, sender_address
+            else:
+                return None, None
 
 
 class ForwardingTableEntry:
