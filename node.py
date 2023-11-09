@@ -31,9 +31,8 @@ class Node:
         return new_socket
 
     def print_info(self):
-        print("Container: " + self.container_name)
+        print(self.container_name + " connected to: " + str(self.connected_networks))
         print("Address: " + self.format_address)
-        print("Connected to networks: " + str(self.connected_networks))
 
 
 class Router(Node):
@@ -69,13 +68,13 @@ class Router(Node):
                 break
             # discards messages from itself
             if sender_address not in LISTENING_SOCKET_ADDRESS[self.container_name]:
-                print(response)
+                print(response.decode())
 
                 ip_parts = sender_address[0].split('.')
                 ip_parts[-1] = '255'
                 dont_sent_to_address = ('.'.join(ip_parts), 24)
 
-                time.sleep(0.25)
+                time.sleep(0.5)
                 self.forward(response, dont_sent_to_address)
 
     def forward(self, payload, dont_send_to_address):

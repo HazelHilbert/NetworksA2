@@ -20,18 +20,31 @@ def input_address():
     return address
 
 
+def send_path_request(endpoint, receiver_address):
+    header = make_header(1, endpoint.address, receiver_address)
+    payload = ("Yes, it is me, " + endpoint.format_address).encode()
+    endpoint.broadcast(header + payload)
+
+
+def send_path_response(endpoint, requester_address):
+    header = make_header(2, endpoint.address, requester_address)
+    payload = ("Hi I am " + endpoint.format_address + " trying to find " + str(
+        format_address(receiver_address))).encode()
+    endpoint.broadcast(header + payload)
+
+
 endpoint = Endpoint()
 endpoint.print_info()
-print("Broadcasting to: " + str(endpoint.broadcast_ip_port))
+# print("Broadcasting to: " + str(endpoint.broadcast_ip_port))
 
 input_sockets = [sys.stdin, endpoint.listening_socket]
 output_sockets = []
 
-menu = "Choose action:\n   1 --> Send data\n   2 --> Quit\n"
+menu = "Choose action:\n   1 --> Send data\n   2 --> Quit"
 print(menu)
 
-quit = False
-while not quit:
+quit_loop = False
+while not quit_loop:
     readable, writable, _ = select.select(input_sockets, output_sockets, [])
     for sock in readable:
         if sock is sys.stdin:
@@ -43,7 +56,7 @@ while not quit:
                 endpoint.broadcast(payload)
 
             elif input_action == '2':
-                quit = True
+                quit_loop = True
             else:
                 print("Invalid selection")
 
