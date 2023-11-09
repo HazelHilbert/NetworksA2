@@ -7,11 +7,15 @@ import uuid
 from constants import *
 
 
+def format_address(hex_address):
+    return ':'.join(['{:02x}'.format(b) for b in hex_address])
+
+
 class Node:
     def __init__(self):
         # generate 4-byte address
         self.address = uuid.UUID(int=uuid.getnode()).bytes[-4:]
-        self.format_address = ':'.join(['{:02x}'.format(b) for b in self.address])
+        self.format_address = format_address(self.address)
 
         # initialize container name and networks the container is connected to
         self.container_name = CONTAINERS[os.environ.get('HOSTNAME')]
@@ -20,7 +24,6 @@ class Node:
         # create broadcast UDP sockets
         self.broadcast_socket = self.create_broadcasting_socket()
         self.broadcast_socket.bind(BROADCAST_SOCKET_ADDRESS[self.container_name])
-
 
     def create_broadcasting_socket(self):
         new_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -63,8 +66,7 @@ class Router(Node):
         while True:
             response, sender_address = sock.recvfrom(BUFFER_SIZE)
             if not response:
-                break  # Socket closed or error occurred
-
+                break
             # discards messages from itself
             if sender_address not in LISTENING_SOCKET_ADDRESS[self.container_name]:
                 print(response)
@@ -79,14 +81,14 @@ class Router(Node):
                 ip_parts[-1] = '255'
                 dont_sent_to_address = ('.'.join(ip_parts), 24)
 
-                #print("dont send to: " + str(dont_sent_to_address))
+                # print("dont send to: " + str(dont_sent_to_address))
                 time.sleep(1.0)
                 self.forward(response, dont_sent_to_address)
 
     def forward(self, payload, dont_send_to_address):
         for ip_port in self.broadcast_ip_port:
             if ip_port[0] != dont_send_to_address[0]:
-                #print(str(ip_port) + " vs " + str(dont_send_to_address))
+                # print(str(ip_port) + " vs " + str(dont_send_to_address))
                 self.broadcast_socket.sendto(payload, ip_port)
 
     def add_entry_to_forwarding_table(self, destination, next_hop, timer):
@@ -109,8 +111,10 @@ class Endpoint(Node):
         self.broadcast_socket.sendto(payload, self.broadcast_ip_port)
 
     def listen(self):
-        response, address = self.listening_socket.recvfrom(BUFFER_SIZE)
-        print(response.decode())
+        while True:
+            response, sender_address = self.listening_socket.recvfrom(BUFFER_SIZE)
+            if sender_address not in LISTENING_SOCKET_ADDRESS[self.container_name]:
+                print(response)
 
 
 class ForwardingTableEntry:
