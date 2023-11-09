@@ -1,20 +1,20 @@
 import struct
 
-HEADER_FORMATS = {
-    1: 'b 4s 4s',
-    2: 'b 4s 4s',
-    3: 'b 4s 4s b i',
-}
-
 '''
 Headers
 1: Path Request
     PacketType, Sender, Destination
 2: Path Response
-    PacketType, Sender, Destination, Next Hop in payload
+    PacketType, Sender, Destination, --> Next Hop in payload
 3: Forward Media
     PacketType, Sender, Destination, stream_number, frame
 '''
+
+HEADER_FORMATS = {
+    1: 'b 4s 4s',
+    2: 'b 4s 4s',
+    3: 'b 4s 4s b i',
+}
 
 
 def make_header(packet_type, sender_addr, destination_addr, stream_number=None, frame=None):
@@ -29,7 +29,7 @@ def get_header_format(header):
     if isinstance(header, int):
         packet_type = header
     else:
-        packet_type = header[0]
+        packet_type = get_packet_type(header)
     return HEADER_FORMATS[packet_type]
 
 
@@ -37,18 +37,29 @@ def get_header_length(header):
     return struct.calcsize(get_header_format(header))
 
 
-def get_producer_id(header):
-    return str(get_producer_id_bytes(header).hex().upper())
+def get_packet_type(header):
+    return header[0]
 
 
-def get_producer_id_bytes(header):
+def get_sender(header):
     return struct.unpack(get_header_format(header), header)[1]
 
 
+def get_destination(header):
+    return struct.unpack(get_header_format(header), header)[2]
+
+
 def get_stream_number(header):
-    return str(struct.unpack(get_header_format(header), header)[2])
+    return struct.unpack(get_header_format(header), header)[3]
 
 
-def get_frame_number(header):
-    return str(struct.unpack(get_header_format(header), header)[3])
+def get_frame(header):
+    return struct.unpack(get_header_format(header), header)[4]
 
+
+def parse_datagram(datagram):
+    packet_type = datagram[0][0]
+    header = datagram[0][:get_header_length(packet_type)]
+    payload = datagram[0][get_header_length(packet_type):]
+    address = datagram[1]
+    return packet_type, header, payload, address
