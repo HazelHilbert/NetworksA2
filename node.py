@@ -5,6 +5,7 @@ import time
 import uuid
 
 from constants import *
+from header import parse_datagram
 
 
 def format_address(hex_address):
@@ -47,9 +48,9 @@ class Router(Node):
             new_socket.bind(ip_port)
             self.listening_sockets.append(new_socket)
 
-    def broadcast(self, payload):
+    def broadcast(self, data):
         for ip_port in self.broadcast_ip_port:
-            self.broadcast_socket.sendto(payload, ip_port)
+            self.broadcast_socket.sendto(data, ip_port)
 
     def listen_concurrently(self):
         threads = []
@@ -63,25 +64,24 @@ class Router(Node):
 
     def listen(self, sock):
         while True:
-            response, sender_address = sock.recvfrom(BUFFER_SIZE)
-            if not response:
-                break
+            packet_type, header, payload, sender_address = parse_datagram(sock.recvfrom(BUFFER_SIZE))
+
             # discards messages from itself
             if sender_address not in LISTENING_SOCKET_ADDRESS[self.container_name]:
-                print(response.decode())
+                print(payload.decode())
 
                 ip_parts = sender_address[0].split('.')
                 ip_parts[-1] = '255'
                 dont_sent_to_address = ('.'.join(ip_parts), 24)
 
                 time.sleep(0.5)
-                self.forward(response, dont_sent_to_address)
+                self.forward(header+payload, dont_sent_to_address)
 
-    def forward(self, payload, dont_send_to_address):
+    def forward(self, data, dont_send_to_address):
         for ip_port in self.broadcast_ip_port:
             if ip_port[0] != dont_send_to_address[0]:
                 # print(str(ip_port) + " vs " + str(dont_send_to_address))
-                self.broadcast_socket.sendto(payload, ip_port)
+                self.broadcast_socket.sendto(data, ip_port)
 
     def add_entry_to_forwarding_table(self, destination, next_hop, timer):
         entry = ForwardingTableEntry(destination, next_hop, timer)
@@ -99,16 +99,16 @@ class Endpoint(Node):
         self.listening_socket = self.create_broadcasting_socket()
         self.listening_socket.bind(self.broadcast_ip_port)
 
-    def broadcast(self, payload):
-        self.broadcast_socket.sendto(payload, self.broadcast_ip_port)
+    def broadcast(self, data):
+        self.broadcast_socket.sendto(data, self.broadcast_ip_port)
 
     def listen(self):
         while True:
-            response, sender_address = self.listening_socket.recvfrom(BUFFER_SIZE)
+            packet_type, header, payload, sender_address = parse_datagram(self.listening_socket.recvfrom(BUFFER_SIZE))
             if sender_address not in LISTENING_SOCKET_ADDRESS[self.container_name]:
-                return response, sender_address
+                return packet_type, header, payload, sender_address
             else:
-                return None, None
+                return None, None, None, None
 
 
 class ForwardingTableEntry:

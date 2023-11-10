@@ -3,9 +3,9 @@ import struct
 '''
 Headers
 1: Path Request
-    PacketType, Sender, Destination
+    PacketType, Source, Destination
 2: Path Response
-    PacketType, Sender, Destination, --> Next Hop in payload
+    PacketType, Source, Destination, --> Next Hop in payload
 3: Forward Media
     PacketType, Sender, Destination, stream_number, frame
 '''
@@ -17,11 +17,11 @@ HEADER_FORMATS = {
 }
 
 
-def make_header(packet_type, sender_addr, destination_addr, stream_number=None, frame=None):
+def make_header(packet_type, source_addr, destination_addr, stream_number=None, frame=None):
     if packet_type in {1, 2}:
-        return struct.pack(HEADER_FORMATS[packet_type], packet_type, sender_addr, destination_addr)
+        return struct.pack(HEADER_FORMATS[packet_type], packet_type, source_addr, destination_addr)
     elif packet_type in {3}:
-        return struct.pack(HEADER_FORMATS[packet_type], packet_type, sender_addr, destination_addr, stream_number,
+        return struct.pack(HEADER_FORMATS[packet_type], packet_type, source_addr, destination_addr, stream_number,
                            frame)
 
 
@@ -41,7 +41,7 @@ def get_packet_type(header):
     return header[0]
 
 
-def get_sender(header):
+def get_source(header):
     return struct.unpack(get_header_format(header), header)[1]
 
 
