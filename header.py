@@ -3,9 +3,9 @@ import struct
 '''
 Headers
 1: Path Request
-    PacketType, Source, Destination
+    PacketType, Source (requester), Destination
 2: Path Response
-    PacketType, Source, Destination, --> Next Hop in payload
+    PacketType, Source, Destination (requester), --> Next Hop in payload
 3: Forward Media
     PacketType, Sender, Destination, stream_number, frame
 '''

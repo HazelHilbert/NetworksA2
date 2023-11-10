@@ -58,7 +58,7 @@ while not quit_loop:
                 print("Invalid selection")
 
         elif sock is endpoint.listening_socket:
-            packet_type, header, payload, sender_address = endpoint.listen()
+            packet_type, header, payload, sender_ip_port = endpoint.listen()
             if packet_type is None:
                 continue
             elif packet_type == 1:
