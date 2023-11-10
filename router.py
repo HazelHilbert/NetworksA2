@@ -1,6 +1,6 @@
 from node import *
 
 router = Router()
-router.print_info()
+print(router)
 router.listen_concurrently()
 

@@ -34,7 +34,7 @@ def send_path_response(endpoint, requester_address):
 
 
 endpoint = Endpoint()
-endpoint.print_info()
+print(endpoint)
 # print("Broadcasting to: " + str(endpoint.broadcast_ip_port))
 
 input_sockets = [sys.stdin, endpoint.listening_socket]

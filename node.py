@@ -5,6 +5,7 @@ import time
 import uuid
 
 from constants import *
+from fowarding_table import ForwardingTable
 from header import *
 
 
@@ -31,15 +32,16 @@ class Node:
         new_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         return new_socket
 
-    def print_info(self):
-        print(self.container_name + " connected to: " + str(self.connected_networks))
-        print("Address: " + self.format_address)
+    def __str__(self):
+        s = self.container_name + ' connected to: ' + str(self.connected_networks) + '\n'
+        s += 'Address: ' + self.format_address
+        return s
 
 
 class Router(Node):
     def __init__(self):
         super().__init__()
-        self.forwarding_table = []
+        self.forwarding_table = ForwardingTable()
         self.broadcast_ip_port = tuple(NETWORKS[network] for network in self.connected_networks)
         # create list of listening UDP sockets
         self.listening_sockets = []
@@ -82,7 +84,7 @@ class Router(Node):
                 if packet_type == 1:
                     # look up in forwarding table. If there is a path send a path_response to sender.
                     # Else broadcast and keep track of who sent the request?
-                    next_hop = self.get_next_hop_from_forwarding_table(get_destination(header))
+                    next_hop = self.forwarding_table.get_next_hop(get_destination(header))
                     if next_hop is None:
                         self.broadcast(header + payload, dont_sent_to_address)
                     else:
@@ -92,26 +94,13 @@ class Router(Node):
                         self.broadcast_to(header + payload, dont_sent_to_address)
                 elif packet_type == 2:
                     # add to forwarding table and broadcast
-                    self.add_entry_to_forwarding_table(get_source(header), sender_ip_port, 5)
+                    self.forwarding_table.add_entry(get_source(header), sender_ip_port, 5)
                     self.broadcast(header + payload, dont_sent_to_address)
 
                 elif packet_type == 3:
                     # look up in forwarding table and forward
                     print("now i need to forward")
 
-
-    def add_entry_to_forwarding_table(self, destination, next_hop, timer):
-        entry = ForwardingTableEntry(destination, next_hop, timer)
-        self.forwarding_table.append(entry)
-
-    def remove_entry_from_forwarding_table(self, destination):
-        self.forwarding_table = [entry for entry in self.forwarding_table if entry.destination != destination]
-
-    def get_next_hop_from_forwarding_table(self, destination_address):
-        for entry in self.forwarding_table:
-            if entry.destination == destination_address:
-                return entry.next_hop
-        return None
 
 class Endpoint(Node):
     def __init__(self):
@@ -120,8 +109,6 @@ class Endpoint(Node):
         # listening UDP sockets
         self.listening_socket = self.create_broadcasting_socket()
         self.listening_socket.bind(self.broadcast_ip_port)
-        print(self.listening_socket.getsockname())
-
 
     def broadcast(self, data):
         self.broadcast_socket.sendto(data, self.broadcast_ip_port)
@@ -133,10 +120,3 @@ class Endpoint(Node):
                 return packet_type, header, payload, sender_ip_port
             else:
                 return None, None, None, None
-
-
-class ForwardingTableEntry:
-    def __init__(self, destination, next_hop, timer):
-        self.destination = destination
-        self.next_hop = next_hop
-        self.timer = timer
