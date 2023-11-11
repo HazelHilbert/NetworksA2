@@ -13,16 +13,15 @@ Headers
 HEADER_FORMATS = {
     1: 'b 4s 4s',
     2: 'b 4s 4s',
-    3: 'b 4s 4s b i',
+    3: 'b 4s 4s i',
 }
 
 
-def make_header(packet_type, source_addr, destination_addr, stream_number=None, frame=None):
+def make_header(packet_type, source_addr, destination_addr, frame=None):
     if packet_type in {1, 2}:
         return struct.pack(HEADER_FORMATS[packet_type], packet_type, source_addr, destination_addr)
     elif packet_type in {3}:
-        return struct.pack(HEADER_FORMATS[packet_type], packet_type, source_addr, destination_addr, stream_number,
-                           frame)
+        return struct.pack(HEADER_FORMATS[packet_type], packet_type, source_addr, destination_addr, frame)
 
 
 def get_header_format(header):
@@ -49,12 +48,8 @@ def get_destination(header):
     return struct.unpack(get_header_format(header), header)[2]
 
 
-def get_stream_number(header):
-    return struct.unpack(get_header_format(header), header)[3]
-
-
 def get_frame(header):
-    return struct.unpack(get_header_format(header), header)[4]
+    return struct.unpack(get_header_format(header), header)[3]
 
 
 def parse_datagram(datagram):

@@ -28,3 +28,9 @@ docker network connect edge1 endpoint1 ; docker network connect edge1 router1 ; 
 # Start containers:
 docker start -i endpoint1
 ...
+
+# Capturing Packets
+tcpdump -i any -w /compnets/capture_node1.pcap &
+kill %
+
+mergecap -w capture.pcap capture_endpoint1.pcap capture_router1.pcap capture_router2.pcap capture_router3.pcap capture_endpoint2.pcap
