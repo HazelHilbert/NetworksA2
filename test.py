@@ -1,15 +1,12 @@
-from header import *
-'''
-node = Node()
-node.print_info()
-print(node.broadcast_socket.getsockname())
+from node import *
 
-print(node.address)
-print(node.format_address)
+node = Endpoint()
+#print(node)
+print("broadcast socket: ")
+print(node.listening_socket.getsockname())
 
-addr = input_address()
-print(addr)
-print(format_address(addr))
+#print(node.address)
+#print(node.format_address)
 '''
 
 # Example usage:
@@ -21,4 +18,4 @@ print(get_sender(header))
 print(get_destination(header))
 print(get_stream_number(header))
 print(get_frame(header))
-
+'''
