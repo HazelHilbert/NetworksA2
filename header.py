@@ -5,9 +5,9 @@ Headers
 1: Path Request
     PacketType, Source (requester), Destination, last hop
 2: Path Response
-    PacketType, Source, Destination (requester), last hop --> Next Hop in payload
+    PacketType, Source, Destination (requester), last hop, Next Hop
 3: Forward Media
-    PacketType, Sender, Destination, stream_number, last hop, frame
+    PacketType, Sender, Destination, next hop, frame
 4: Delete Forwarding Info
     PacketType, Sender
 '''

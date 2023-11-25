@@ -20,6 +20,19 @@ def input_address():
     return address
 
 
+def input_frames():
+    valid = False
+    while not valid:
+        try:
+            folder_input = input("Enter folder with frames to broadcast: ")
+            list_of_frames = os.listdir(os.getcwd() + '/' + folder_input)
+            valid = True
+        except:
+            if (valid == False):
+                print("Could not find folder")
+    return (folder_input, list_of_frames)
+
+
 def send_path_request(endpoint, receiver_address):
     header = make_header(1, endpoint.address, receiver_address, endpoint.address)
     payload = ("Hi I am " + endpoint.format_address + " trying to find " + str(
@@ -39,6 +52,12 @@ def send_forwarding_removal_request(endpoint):
     endpoint.broadcast(header + payload)
 
 
+def send_frame(endpoint, destination_address, frame_number, frame_payload):
+    print("actually sending frame")
+    header = make_header(3, endpoint.address, destination_address, NO_NEXT_HOP, frame_number)
+    endpoint.broadcast(header + frame_payload)
+
+
 endpoint = Endpoint()
 print(endpoint)
 # print("Broadcasting to: " + str(endpoint.broadcast_ip_port))
@@ -46,7 +65,7 @@ print(endpoint)
 input_sockets = [sys.stdin, endpoint.listening_socket]
 output_sockets = []
 
-menu = "Choose action:\n   1 --> Send data\n   2 --> Request to Remove Path Info\n   3 --> Quit"
+menu = "Choose action:\n   1 --> Find Path\n   2 --> Send data\n   3 --> Request to Remove Path Info\n   4 --> Quit"
 print(menu)
 
 quit_loop = False
@@ -59,11 +78,21 @@ while not quit_loop:
                 receiver_address = input_address()
                 send_path_request(endpoint, receiver_address)
             elif input_action == '2':
-                send_forwarding_removal_request(endpoint)
+                destination_address = input_address()
+                folder_input, list_of_frames = input_frames()
+                for i in range(len(list_of_frames)):
+                    current_frame_path = os.getcwd() + '/' + folder_input + '/' + list_of_frames[i]
+                    with open(current_frame_path, 'rb') as file:
+                        payload_frame = file.read()
+                    print("Sending frame: " + str(i+1))
+                    send_frame(endpoint, destination_address, i+1, payload_frame)
             elif input_action == '3':
+                send_forwarding_removal_request(endpoint)
+            elif input_action == '4':
                 quit_loop = True
             else:
                 print("Invalid selection")
+                print(menu)
 
         elif sock is endpoint.listening_socket:
             packet_type, header, payload, sender_ip_port = endpoint.listen()
@@ -83,3 +112,6 @@ while not quit_loop:
                 else:
                     #print("This is not for me!")
                     continue
+            elif packet_type == 3:
+                if get_last_hop(header) == endpoint.address:
+                    print("Received frame: " + str(get_frame_or_next_hop(header)) + "; from: " + format_address(get_source(header)))
