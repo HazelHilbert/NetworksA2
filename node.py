@@ -80,19 +80,30 @@ class Router(Node):
             if not (sender_ip_port not in LISTENING_SOCKET_ADDRESS[self.container_name]):
                 continue
 
+            ip_parts = sender_ip_port[0].split('.')
+            ip_parts[-1] = '255'
+            dont_sent_to_address = ('.'.join(ip_parts), 24)
+
+            if packet_type == 4:
+                # remove forwarding infromation
+                source = get_source(header)
+                if self.forwarding_table.get_next_hop(source) is not None:
+                    print(payload.decode())
+                    print("Removing info from forwarding table")
+                    self.forwarding_table.remove_entry(get_source(header))
+                self.broadcast(header + payload, dont_sent_to_address)
+                continue
+
             last_hop = get_last_hop(header)
             # discard if received from ourselves
             if last_hop == self.address:
                 continue
 
             print(payload.decode())
-
-            ip_parts = sender_ip_port[0].split('.')
-            ip_parts[-1] = '255'
-            dont_sent_to_address = ('.'.join(ip_parts), 24)
+            time.sleep(0.5)
 
             #print("recived from: " + format_address(last_hop))
-            time.sleep(0.5)
+
 
             if packet_type == 1:
                 # look up in forwarding table. If there is a path send a path_response to sender.
@@ -117,10 +128,10 @@ class Router(Node):
                 # print("sending data back to: " + str(next_hop))
                 header = change_last_and_next_hop(header, self.address, next_hop)
                 self.broadcast(header + payload, dont_sent_to_address)
-
             elif packet_type == 3:
                 # look up in forwarding table and forward
                 print("now i need to forward")
+
 
 
 class Endpoint(Node):

@@ -33,6 +33,12 @@ def send_path_response(endpoint, requester_address):
     endpoint.broadcast(header + payload)
 
 
+def send_forwarding_removal_request(endpoint):
+    header = make_header(4, endpoint.address)
+    payload = ("Please remove forwarding infromation about " + endpoint.format_address).encode()
+    endpoint.broadcast(header + payload)
+
+
 endpoint = Endpoint()
 print(endpoint)
 # print("Broadcasting to: " + str(endpoint.broadcast_ip_port))
@@ -40,7 +46,7 @@ print(endpoint)
 input_sockets = [sys.stdin, endpoint.listening_socket]
 output_sockets = []
 
-menu = "Choose action:\n   1 --> Send data\n   2 --> Quit"
+menu = "Choose action:\n   1 --> Send data\n   2 --> Request to Remove Path Info\n   3 --> Quit"
 print(menu)
 
 quit_loop = False
@@ -53,6 +59,8 @@ while not quit_loop:
                 receiver_address = input_address()
                 send_path_request(endpoint, receiver_address)
             elif input_action == '2':
+                send_forwarding_removal_request(endpoint)
+            elif input_action == '3':
                 quit_loop = True
             else:
                 print("Invalid selection")
@@ -73,4 +81,5 @@ while not quit_loop:
                 if get_destination(header) == endpoint.address:
                     print("Now I can send the frames")
                 else:
-                    print("This is not for me!")
+                    #print("This is not for me!")
+                    continue

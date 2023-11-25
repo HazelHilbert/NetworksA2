@@ -8,22 +8,28 @@ Headers
     PacketType, Source, Destination (requester), last hop --> Next Hop in payload
 3: Forward Media
     PacketType, Sender, Destination, stream_number, last hop, frame
+4: Delete Forwarding Info
+    PacketType, Sender
 '''
 
 HEADER_FORMATS = {
     1: 'b 4s 4s 4s',
     2: 'b 4s 4s 4s 4s',
     3: 'b 4s 4s 4s i',
+    4: 'b 4s'
 }
 
 NO_NEXT_HOP = b'0000'
 
-def make_header(packet_type, source_addr, destination_addr, last_hop, frame_or_next_hop=None):
+
+def make_header(packet_type, source_addr, destination_addr=None, last_hop=None, frame_or_next_hop=None):
     if packet_type in {1}:
         return struct.pack(HEADER_FORMATS[packet_type], packet_type, source_addr, destination_addr, last_hop)
     if packet_type in {2, 3}:
         return struct.pack(HEADER_FORMATS[packet_type], packet_type, source_addr, destination_addr, last_hop,
                            frame_or_next_hop)
+    if packet_type in {4}:
+        return struct.pack(HEADER_FORMATS[packet_type], packet_type, source_addr)
 
 
 def change_last_hop(header, last_hop):
@@ -32,7 +38,7 @@ def change_last_hop(header, last_hop):
         return make_header(get_packet_type(header), get_source(header), get_destination(header), last_hop)
     elif packet_type in {2, 3}:
         return make_header(get_packet_type(header), get_source(header), get_destination(header), last_hop,
-                    get_frame_or_next_hop(header))
+                           get_frame_or_next_hop(header))
 
 
 def change_last_and_next_hop(header, last_hop, next_hop):
