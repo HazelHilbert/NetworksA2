@@ -71,12 +71,15 @@ class Router(Node):
         while True:
             packet_type, header, payload, sender_ip_port = parse_datagram(sock.recvfrom(BUFFER_SIZE))
 
+            for_address = None
+            if packet_type == 2:
+                for_address = get_frame_or_next_hop(header)
+            elif packet_type == 3:
+                for_address = get_last_hop(header)
             # discard if response is not for us
-            if packet_type == 2 and get_frame_or_next_hop(header) != self.address and get_frame_or_next_hop(
-                    header) != NO_NEXT_HOP:
+            if for_address is not None and for_address != self.address and for_address != NO_NEXT_HOP:
                 continue
-            elif packet_type == 3 and get_last_hop(header) != self.address and get_last_hop(header) != NO_NEXT_HOP:
-                continue
+
             # discard if received from ourselves
             if not (sender_ip_port not in LISTENING_SOCKET_ADDRESS[self.container_name]):
                 continue
@@ -94,18 +97,25 @@ class Router(Node):
                     self.forwarding_table.remove_entry(get_source(header))
                 self.broadcast(header + payload, dont_sent_to_address)
                 continue
+            elif packet_type == 3:
+                # look up in forwarding table and forward
+                next_hop = self.forwarding_table.get_next_hop(get_destination(header))
+                header = change_last_hop(header, next_hop)
+                print("Forwarding frame: " + str(get_frame_or_next_hop(header)) + "; to: " + format_address(
+                    get_destination(header)))
+                self.broadcast(header + payload, dont_sent_to_address)
+                continue
 
             last_hop = get_last_hop(header)
             # discard if received from ourselves
-            if last_hop == self.address and packet_type != 3:
+            if last_hop == self.address:
                 continue
 
-            if packet_type != 3:
-                print(payload.decode())
+            print(payload.decode())
 
             if packet_type == 1:
-                # look up in forwarding table. If there is a path send a path_response to sender.
-                # Else broadcast and keep track of who sent the request?
+                # look up in forwarding table. If there is a path send a path_response to sender,
+                # else broadcast and keep track of source
                 self.forwarding_table.add_entry(get_source(header), last_hop, 5)
                 next_hop = self.forwarding_table.get_next_hop(get_destination(header))
                 if next_hop is None:
@@ -122,13 +132,7 @@ class Router(Node):
                 next_hop = self.forwarding_table.get_next_hop(get_destination(header))
                 header = change_last_and_next_hop(header, self.address, next_hop)
                 self.broadcast(header + payload, dont_sent_to_address)
-            elif packet_type == 3:
-                # look up in forwarding table and forward
-                next_hop = self.forwarding_table.get_next_hop(get_destination(header))
-                header = change_last_hop(header, next_hop)
-                print("Forwarding frame: " + str(get_frame_or_next_hop(header)) + "; to: " + format_address(
-                    get_destination(header)))
-                self.broadcast(header + payload, dont_sent_to_address)
+
 
 
 class Endpoint(Node):
