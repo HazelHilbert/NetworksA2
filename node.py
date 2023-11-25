@@ -1,7 +1,6 @@
 import os
 import socket
 import threading
-import time
 import uuid
 
 from constants import *
@@ -48,7 +47,6 @@ class Router(Node):
         for ip_port in self.broadcast_ip_port:
             new_socket = self.create_broadcasting_socket()
             new_socket.bind(ip_port)
-            # print(new_socket.getsockname())
             self.listening_sockets.append(new_socket)
 
     def broadcast(self, data, dont_send_to_address=None):
@@ -104,20 +102,14 @@ class Router(Node):
 
             if packet_type != 3:
                 print(payload.decode())
-            #time.sleep(0.5)
-
-            # print("recived from: " + format_address(last_hop))
 
             if packet_type == 1:
                 # look up in forwarding table. If there is a path send a path_response to sender.
                 # Else broadcast and keep track of who sent the request?
                 self.forwarding_table.add_entry(get_source(header), last_hop, 5)
-                # print("adding to ft: " + str(get_source(header)) + str(dont_sent_to_address))
                 next_hop = self.forwarding_table.get_next_hop(get_destination(header))
                 if next_hop is None:
-                    # print("dont know where that is, will broadcast")
                     header = change_last_hop(header, self.address)
-                    # print("I am broadcasting but not to: " + str(dont_sent_to_address))
                     self.broadcast(header + payload, dont_sent_to_address)
                 else:
                     print("Found path")
@@ -128,7 +120,6 @@ class Router(Node):
                 # add to forwarding table and broadcast
                 self.forwarding_table.add_entry(get_source(header), last_hop, 5)
                 next_hop = self.forwarding_table.get_next_hop(get_destination(header))
-                # print("sending data back to: " + str(next_hop))
                 header = change_last_and_next_hop(header, self.address, next_hop)
                 self.broadcast(header + payload, dont_sent_to_address)
             elif packet_type == 3:
@@ -147,7 +138,6 @@ class Endpoint(Node):
         # listening UDP sockets
         self.listening_socket = self.create_broadcasting_socket()
         self.listening_socket.bind(self.broadcast_ip_port)
-        # print(self.listening_socket.getsockname())
 
     def broadcast(self, data):
         self.broadcast_socket.sendto(data, self.broadcast_ip_port)

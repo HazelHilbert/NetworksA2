@@ -53,7 +53,6 @@ def send_forwarding_removal_request(endpoint):
 
 
 def send_frame(endpoint, destination_address, frame_number, frame_payload):
-    print("actually sending frame")
     header = make_header(3, endpoint.address, destination_address, NO_NEXT_HOP, frame_number)
     endpoint.broadcast(header + frame_payload)
 
@@ -110,7 +109,6 @@ while not quit_loop:
                 if get_destination(header) == endpoint.address:
                     print("Now I can send the frames")
                 else:
-                    #print("This is not for me!")
                     continue
             elif packet_type == 3:
                 if get_last_hop(header) == endpoint.address:
