@@ -21,14 +21,14 @@ def input_address():
 
 
 def send_path_request(endpoint, receiver_address):
-    header = make_header(1, endpoint.address, receiver_address)
+    header = make_header(1, endpoint.address, receiver_address, endpoint.address)
     payload = ("Hi I am " + endpoint.format_address + " trying to find " + str(
         format_address(receiver_address))).encode()
     endpoint.broadcast(header + payload)
 
 
 def send_path_response(endpoint, requester_address):
-    header = make_header(2, endpoint.address, requester_address)
+    header = make_header(2, endpoint.address, requester_address, endpoint.address, NO_NEXT_HOP)
     payload = ("Yes, it is me, " + endpoint.format_address).encode()
     endpoint.broadcast(header + payload)
 
@@ -65,6 +65,7 @@ while not quit_loop:
                 print(payload.decode())
                 if get_destination(header) == endpoint.address:
                     send_path_response(endpoint, get_source(header))
+                    print("That is me!")
                 else:
                     print("Sorry not me!")
             elif packet_type == 2:

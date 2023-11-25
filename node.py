@@ -48,7 +48,7 @@ class Router(Node):
         for ip_port in self.broadcast_ip_port:
             new_socket = self.create_broadcasting_socket()
             new_socket.bind(ip_port)
-            #print(new_socket.getsockname())
+            # print(new_socket.getsockname())
             self.listening_sockets.append(new_socket)
 
     def broadcast(self, data, dont_send_to_address=None):
@@ -72,39 +72,55 @@ class Router(Node):
     def listen(self, sock):
         while True:
             packet_type, header, payload, sender_ip_port = parse_datagram(sock.recvfrom(BUFFER_SIZE))
-            # discards messages from itself
-            if sender_ip_port not in LISTENING_SOCKET_ADDRESS[self.container_name]:
-                print(payload.decode())
 
-                ip_parts = sender_ip_port[0].split('.')
-                ip_parts[-1] = '255'
-                dont_sent_to_address = ('.'.join(ip_parts), 24)
-                time.sleep(0.5)
+            # discard if response is not for us
+            if packet_type == 2 and get_frame_or_next_hop(header) != self.address and get_frame_or_next_hop(header) != NO_NEXT_HOP:
+                continue
+            # discard if received from ourselves
+            if not (sender_ip_port not in LISTENING_SOCKET_ADDRESS[self.container_name]):
+                continue
 
-                if packet_type == 1:
-                    # look up in forwarding table. If there is a path send a path_response to sender.
-                    # Else broadcast and keep track of who sent the request?
-                    self.forwarding_table.add_entry(get_source(header), dont_sent_to_address, 5)
-                    #print("adding to ft: " + str(get_source(header)) + str(dont_sent_to_address))
-                    next_hop = self.forwarding_table.get_next_hop(get_destination(header))
-                    if next_hop is None:
-                        #print("dont know where that is, will broadcast")
-                        self.broadcast(header + payload, dont_sent_to_address)
-                    else:
-                        print("Found path")
-                        header = make_header(2, get_destination(header), get_source(header))
-                        payload = ("I know where " + format_address(get_destination(header)) + " is").encode()
-                        self.broadcast_to(header + payload, dont_sent_to_address)
-                elif packet_type == 2:
-                    # add to forwarding table and broadcast
-                    self.forwarding_table.add_entry(get_source(header), sender_ip_port, 5)
-                    next_hop = self.forwarding_table.get_next_hop(get_destination(header))
-                    #print("sending data back to: " + str(next_hop))
-                    self.broadcast_to(header + payload, next_hop)
+            last_hop = get_last_hop(header)
+            # discard if received from ourselves
+            if last_hop == self.address:
+                continue
 
-                elif packet_type == 3:
-                    # look up in forwarding table and forward
-                    print("now i need to forward")
+            print(payload.decode())
+
+            ip_parts = sender_ip_port[0].split('.')
+            ip_parts[-1] = '255'
+            dont_sent_to_address = ('.'.join(ip_parts), 24)
+
+            #print("recived from: " + format_address(last_hop))
+            time.sleep(0.5)
+
+            if packet_type == 1:
+                # look up in forwarding table. If there is a path send a path_response to sender.
+                # Else broadcast and keep track of who sent the request?
+                self.forwarding_table.add_entry(get_source(header), last_hop, 5)
+                # print("adding to ft: " + str(get_source(header)) + str(dont_sent_to_address))
+                next_hop = self.forwarding_table.get_next_hop(get_destination(header))
+                if next_hop is None:
+                    # print("dont know where that is, will broadcast")
+                    header = change_last_hop(header, self.address)
+                    #print("I am broadcasting but not to: " + str(dont_sent_to_address))
+                    self.broadcast(header + payload, dont_sent_to_address)
+                else:
+                    print("Found path")
+                    header = make_header(2, get_destination(header), get_source(header), self.address, last_hop)
+                    payload = ("I know where " + format_address(get_destination(header)) + " is").encode()
+                    self.broadcast_to(header + payload, dont_sent_to_address)
+            elif packet_type == 2:
+                # add to forwarding table and broadcast
+                self.forwarding_table.add_entry(get_source(header), last_hop, 5)
+                next_hop = self.forwarding_table.get_next_hop(get_destination(header))
+                # print("sending data back to: " + str(next_hop))
+                header = change_last_and_next_hop(header, self.address, next_hop)
+                self.broadcast(header + payload, dont_sent_to_address)
+
+            elif packet_type == 3:
+                # look up in forwarding table and forward
+                print("now i need to forward")
 
 
 class Endpoint(Node):
@@ -114,7 +130,7 @@ class Endpoint(Node):
         # listening UDP sockets
         self.listening_socket = self.create_broadcasting_socket()
         self.listening_socket.bind(self.broadcast_ip_port)
-        #print(self.listening_socket.getsockname())
+        # print(self.listening_socket.getsockname())
 
     def broadcast(self, data):
         self.broadcast_socket.sendto(data, self.broadcast_ip_port)

@@ -3,25 +3,44 @@ import struct
 '''
 Headers
 1: Path Request
-    PacketType, Source (requester), Destination
+    PacketType, Source (requester), Destination, last hop
 2: Path Response
-    PacketType, Source, Destination (requester), --> Next Hop in payload
+    PacketType, Source, Destination (requester), last hop --> Next Hop in payload
 3: Forward Media
-    PacketType, Sender, Destination, stream_number, frame
+    PacketType, Sender, Destination, stream_number, last hop, frame
 '''
 
 HEADER_FORMATS = {
-    1: 'b 4s 4s',
-    2: 'b 4s 4s',
-    3: 'b 4s 4s i',
+    1: 'b 4s 4s 4s',
+    2: 'b 4s 4s 4s 4s',
+    3: 'b 4s 4s 4s i',
 }
 
+NO_NEXT_HOP = b'0000'
 
-def make_header(packet_type, source_addr, destination_addr, frame=None):
-    if packet_type in {1, 2}:
-        return struct.pack(HEADER_FORMATS[packet_type], packet_type, source_addr, destination_addr)
-    elif packet_type in {3}:
-        return struct.pack(HEADER_FORMATS[packet_type], packet_type, source_addr, destination_addr, frame)
+def make_header(packet_type, source_addr, destination_addr, last_hop, frame_or_next_hop=None):
+    if packet_type in {1}:
+        return struct.pack(HEADER_FORMATS[packet_type], packet_type, source_addr, destination_addr, last_hop)
+    if packet_type in {2, 3}:
+        return struct.pack(HEADER_FORMATS[packet_type], packet_type, source_addr, destination_addr, last_hop,
+                           frame_or_next_hop)
+
+
+def change_last_hop(header, last_hop):
+    packet_type = get_packet_type(header)
+    if packet_type in {1}:
+        return make_header(get_packet_type(header), get_source(header), get_destination(header), last_hop)
+    elif packet_type in {2, 3}:
+        return make_header(get_packet_type(header), get_source(header), get_destination(header), last_hop,
+                    get_frame_or_next_hop(header))
+
+
+def change_last_and_next_hop(header, last_hop, next_hop):
+    packet_type = get_packet_type(header)
+    if packet_type in {1}:
+        return make_header(get_packet_type(header), get_source(header), get_destination(header), last_hop)
+    elif packet_type in {2, 3}:
+        return make_header(get_packet_type(header), get_source(header), get_destination(header), last_hop, next_hop)
 
 
 def get_header_format(header):
@@ -48,8 +67,12 @@ def get_destination(header):
     return struct.unpack(get_header_format(header), header)[2]
 
 
-def get_frame(header):
+def get_last_hop(header):
     return struct.unpack(get_header_format(header), header)[3]
+
+
+def get_frame_or_next_hop(header):
+    return struct.unpack(get_header_format(header), header)[4]
 
 
 def parse_datagram(datagram):
