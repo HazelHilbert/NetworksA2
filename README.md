@@ -23,7 +23,7 @@ docker network connect access1 router1
 docker network connect access1 router2
 docker network connect access1 router4
 docker network connect edge4 router4
-docker network connect edge4 endpoint
+docker network connect edge4 endpoint4
 docker network connect access2 router2
 docker network connect access2 router3
 docker network connect edge2 router3
@@ -34,10 +34,16 @@ docker network connect edge3 endpoint3
 
 # Start containers:
 docker start -i endpoint1
-...
+docker start -i router1
+docker start -i router4
+docker start -i router2
+docker start -i router3
+docker start -i endpoint2
+docker start -i endpoint3
+docker start -i endpoint4
 
 # Capturing Packets
-tcpdump -i any -w /compnets/capture_node1.pcap &
+tcpdump -i any -w /compnets/capture_router1.pcap &
 kill %
 
-mergecap -w capture.pcap capture_endpoint1.pcap capture_router1.pcap capture_router2.pcap capture_router3.pcap capture_endpoint2.pcap
+mergecap -w capture.pcap capture_router1.pcap capture_router2.pcap capture_router3.pcap capture_router3.pcap
